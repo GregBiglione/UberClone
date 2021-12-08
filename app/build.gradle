@@ -49,5 +49,13 @@ dependencies {
     //----------------------- Firebase -------------------------------------------------------------
     implementation 'com.google.firebase:firebase-auth-ktx'
     implementation platform('com.google.firebase:firebase-bom:29.0.0')
+
+    //----------------------- RX Java --------------------------------------------------------------
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
+    implementation 'io.reactivex.rxjava3:rxjava:3.0.0'
+
+    //----------------------- KToasty --------------------------------------------------------------
+    implementation 'com.github.shubhamvashisht:KToasty:1.0'
+
 }
 apply plugin: 'com.google.gms.google-services'
