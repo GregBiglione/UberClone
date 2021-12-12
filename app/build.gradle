@@ -50,6 +50,9 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth-ktx'
     implementation platform('com.google.firebase:firebase-bom:29.0.0')
 
+    //----------------------- Firebase UI-----------------------------------------------------------
+    implementation 'com.firebaseui:firebase-ui-auth:7.2.0'
+
     //----------------------- RX Java --------------------------------------------------------------
     implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
     implementation 'io.reactivex.rxjava3:rxjava:3.0.0'
