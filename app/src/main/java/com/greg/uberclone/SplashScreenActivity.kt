@@ -3,44 +3,71 @@ package com.greg.uberclone
 import android.content.ContentValues.TAG
 import android.content.Intent
 import android.os.Bundle
+import android.text.TextUtils
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.droidman.ktoasty.KToasty
 import com.firebase.ui.auth.AuthMethodPickerLayout
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
 import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
+import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.database.*
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
+import com.greg.uberclone.databinding.SplashProgressBarBinding
+import com.greg.uberclone.model.Driver
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import java.util.concurrent.TimeUnit
 
 class SplashScreenActivity : AppCompatActivity() {
 
+    private lateinit var binding: SplashProgressBarBinding
     //----------------------- Firebase -------------------------------------------------------------
     private lateinit var providers: List<AuthUI.IdpConfig>
     private lateinit var auth: FirebaseAuth
     private lateinit var listener: FirebaseAuth.AuthStateListener
     private var currentUser: FirebaseUser? = null
     private lateinit var authMethodPickerLayout: AuthMethodPickerLayout
+    //----------------------- Firebase database ----------------------------------------------------
+    private lateinit var database: FirebaseDatabase
+    private lateinit var driverInformationReference: DatabaseReference
+    private lateinit var driver: Driver
+    //----------------------- Registration dialog --------------------------------------------------
+    private lateinit var builder: AlertDialog.Builder
+    private lateinit var dialog: AlertDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        binding = SplashProgressBarBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
         initializeLogin()
     }
 
     override fun onStart() {
         super.onStart()
         delayedSplashScreen()
-        updateUI(getCurrentUser())
+        //updateUI(getCurrentUser())
     }
 
     override fun onStop() {
         removeListenerOnFirebaseAuth()
         super.onStop()
     }
+
+    /**---------------------------------------------------------------------------------------------
+     *                        Firebase
+     ---------------------------------------------------------------------------------------------*/
 
     //----------------------------------------------------------------------------------------------
     //----------------------- Initialize firebase --------------------------------------------------
@@ -103,6 +130,7 @@ class SplashScreenActivity : AppCompatActivity() {
     //----------------------------------------------------------------------------------------------
 
     private fun initializeLogin(){
+        firebaseDatabase()
         providers = listOf(
             AuthUI.IdpConfig.PhoneBuilder().build(),
             AuthUI.IdpConfig.GoogleBuilder().build(),
@@ -116,12 +144,9 @@ class SplashScreenActivity : AppCompatActivity() {
     //----------------------------------------------------------------------------------------------
 
     private fun initializeListener() {
-        listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        listener = FirebaseAuth.AuthStateListener {
             if (getCurrentUser() != null){
-                KToasty.success(
-                    this, "Welcome ${currentUser!!.uid}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                checkUserFromFirebase()
             }
             else{
                 showLoginLayout()
@@ -142,7 +167,7 @@ class SplashScreenActivity : AppCompatActivity() {
     }
 
     //----------------------------------------------------------------------------------------------
-    //----------------------- Create custom authentication ----------------------------------------------------
+    //----------------------- Create custom authentication -----------------------------------------
     //----------------------------------------------------------------------------------------------
 
     private fun createCustomAuthentication(){
@@ -169,12 +194,125 @@ class SplashScreenActivity : AppCompatActivity() {
                 this, "$response, Welcome ${getCurrentUser()} ",
                 Toast.LENGTH_SHORT
             ).show()
-            updateUI(getCurrentUser())
+            //updateUI(getCurrentUser())
             // ...
         } else {
             Log.w(TAG, "signInWithCredential:failure", response!!.error)
             KToasty.error(this, "Authentication failed", Toast.LENGTH_SHORT).show()
-            updateUI(null)
+            //updateUI(null)
         }
+    }
+
+    /**---------------------------------------------------------------------------------------------
+     *                        Firebase database
+    ----------------------------------------------------------------------------------------------*/
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Initialize firebase database -----------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun firebaseDatabase(){
+        database = Firebase.database
+        initializeDriver()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Initialize driver ----------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun initializeDriver(){
+        driverInformationReference = database.reference
+        driverInformationReference.setValue("drivers")
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Check user from Firebase ---------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun checkUserFromFirebase() {
+        driverInformationReference
+            .child(FirebaseAuth.getInstance().currentUser!!.uid)
+            .addListenerForSingleValueEvent(object: ValueEventListener{
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()){
+                        KToasty.success(this@SplashScreenActivity, "User already registered !", Toast.LENGTH_SHORT).show()
+                    }
+                    else{
+                        showRegisterLayout()
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    KToasty.error(this@SplashScreenActivity, error.message, Toast.LENGTH_SHORT).show()
+                }
+            })
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Show register layout -------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun showRegisterLayout() {
+        builder = AlertDialog.Builder(this, R.style.DialogTheme)
+        val itemView = LayoutInflater.from(this).inflate(R.layout.register_dialog, null)
+
+        val firstNameEt =  itemView.findViewById<View>(R.id.first_name_et) as TextInputEditText
+        val lastNameEt =  itemView.findViewById<View>(R.id.last_name_et) as TextInputEditText
+        val phoneNumberEt =  itemView.findViewById<View>(R.id.phone_number_et) as TextInputEditText
+        val registerBtn =  itemView.findViewById<View>(R.id.register_btn) as Button
+
+        if (getCurrentUser()!!.phoneNumber != null && !TextUtils.isDigitsOnly(getCurrentUser()!!.phoneNumber)){
+            phoneNumberEt.setText(getCurrentUser()!!.phoneNumber)
+        }
+
+        builder.setView(itemView)
+        dialog = builder.create()
+        dialog.show()
+
+        registerBtn.setOnClickListener {
+            when {
+                TextUtils.isDigitsOnly(firstNameEt.text.toString()) -> {
+                    firstNameEt.error = "Please enter a first name"
+                    //return@setOnClickListener
+                }
+                TextUtils.isDigitsOnly(lastNameEt.text.toString()) -> {
+                    lastNameEt.error = "Please enter a last name"
+                    //return@setOnClickListener
+                }
+                TextUtils.isDigitsOnly(phoneNumberEt.text.toString()) -> {
+                    phoneNumberEt.error = "Please enter a phone number"
+                    //return@setOnClickListener
+                }
+                else -> {
+                    val firstName = firstNameEt.text.toString()
+                    val lastName = lastNameEt.text.toString()
+                    val phoneNumber = phoneNumberEt.text.toString()
+                    val rating = 0.0
+
+                    driver = Driver(firstName, lastName, phoneNumber, rating)
+                    checkRegistration()
+                }
+            }
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Check Registration ---------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun checkRegistration() {
+        Log.d("Path Fire:", auth.currentUser!!.uid)
+        driverInformationReference.child(auth.currentUser!!.uid)
+                .setValue(driver)
+                .addOnSuccessListener {
+                    KToasty.success(this, "Registration successfully!", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                    binding.progressBar.visibility = View.GONE
+                }
+                .addOnFailureListener { e ->
+                    KToasty.error(this, "$e.message", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                    binding.progressBar.visibility = View.GONE
+                }
     }
 }

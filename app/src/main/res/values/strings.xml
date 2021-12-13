@@ -2,4 +2,9 @@
     <string name="app_name">UberClone</string>
     <string name="log_in_with_phone_number">Log in with phone number</string>
     <string name="log_in_with_google">Log in with Google</string>
+    <string name="continue_text">Continue</string>
+    <string name="register_text">Let\'s start with creating your account</string>
+    <string name="first_name">First name</string>
+    <string name="last_name">Last name</string>
+    <string name="phone_number">+1 650–555-1234</string>
 </resources>
