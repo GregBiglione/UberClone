@@ -222,7 +222,6 @@ class SplashScreenActivity : AppCompatActivity() {
 
     private fun initializeDriver(){
         driverInformationReference = database.reference
-        driverInformationReference.setValue("drivers")
     }
 
     //----------------------------------------------------------------------------------------------

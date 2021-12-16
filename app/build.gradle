@@ -53,6 +53,12 @@ dependencies {
     //----------------------- Firebase UI-----------------------------------------------------------
     implementation 'com.firebaseui:firebase-ui-auth:7.2.0'
 
+    //----------------------- Firebase database ----------------------------------------------------
+    implementation 'com.google.firebase:firebase-database-ktx'
+
+    //----------------------- Material -------------------------------------------------------------
+    implementation 'com.google.android.material:material:1.4.0'
+
     //----------------------- RX Java --------------------------------------------------------------
     implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
     implementation 'io.reactivex.rxjava3:rxjava:3.0.0'

@@ -35,7 +35,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/first_name"
-                android:inputType="text"/>
+                android:inputType="text"
+                android:imeOptions="actionNext"/>
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -50,7 +51,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/last_name"
-                android:inputType="text"/>
+                android:inputType="text"
+                android:imeOptions="actionNext"/>
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -67,7 +69,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
                 android:hint="@string/phone_number"
-                android:inputType="phone"/>
+                android:inputType="phone"
+                android:nextFocusDown="@+id/register_btn"/>
 
         </com.google.android.material.textfield.TextInputLayout>
 
