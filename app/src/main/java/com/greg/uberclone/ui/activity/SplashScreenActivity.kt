@@ -1,14 +1,12 @@
-package com.greg.uberclone
+package com.greg.uberclone.ui.activity
 
 import android.content.ContentValues.TAG
-import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
-import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +21,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.greg.uberclone.R
 import com.greg.uberclone.databinding.SplashProgressBarBinding
 import com.greg.uberclone.model.Driver
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -90,11 +89,11 @@ class SplashScreenActivity : AppCompatActivity() {
     //----------------------- Update UI if user successfully connected -----------------------------
     //----------------------------------------------------------------------------------------------
 
-    private fun updateUI(currentUser: FirebaseUser?){
+    /*private fun updateUI(currentUser: FirebaseUser?){
         if (currentUser != null){
             startActivity(Intent(this, MainActivity::class.java))
         }
-    }
+    }*/
 
     //----------------------------------------------------------------------------------------------
     //----------------------- Timer ----------------------------------------------------------------

@@ -10,7 +10,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.UberClone">
         <activity
-            android:name=".SplashScreenActivity"
+            android:name=".ui.activity.DriverHomeActivity"
+            android:label="@string/title_activity_driver_home"
+            android:theme="@style/Theme.UberClone.NoActionBar"></activity>
+        <activity
+            android:name=".ui.activity.SplashScreenActivity"
             android:theme="@style/SplashScreenTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -18,7 +22,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity"></activity>
     </application>
 
 </manifest>
