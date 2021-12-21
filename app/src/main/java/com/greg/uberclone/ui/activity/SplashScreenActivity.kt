@@ -1,6 +1,7 @@
 package com.greg.uberclone.ui.activity
 
 import android.content.ContentValues.TAG
+import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
@@ -21,6 +22,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.greg.uberclone.Common
 import com.greg.uberclone.R
 import com.greg.uberclone.databinding.SplashProgressBarBinding
 import com.greg.uberclone.model.Driver
@@ -233,7 +235,9 @@ class SplashScreenActivity : AppCompatActivity() {
             .addListenerForSingleValueEvent(object: ValueEventListener{
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (snapshot.exists()){
-                        KToasty.success(this@SplashScreenActivity, "User already registered !", Toast.LENGTH_SHORT).show()
+                        //KToasty.success(this@SplashScreenActivity, "User already registered !", Toast.LENGTH_SHORT).show()
+                        val currentDriver = snapshot.getValue(Driver::class.java)
+                        goToDriverHomeActivity(currentDriver)
                     }
                     else{
                         showRegisterLayout()
@@ -305,6 +309,7 @@ class SplashScreenActivity : AppCompatActivity() {
                 .addOnSuccessListener {
                     KToasty.success(this, "Registration successfully!", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
+                    goToDriverHomeActivity(driver)
                     binding.progressBar.visibility = View.GONE
                 }
                 .addOnFailureListener { e ->
@@ -312,5 +317,14 @@ class SplashScreenActivity : AppCompatActivity() {
                     dialog.dismiss()
                     binding.progressBar.visibility = View.GONE
                 }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Go to Driver home activity -------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun goToDriverHomeActivity(currentDriver: Driver?) {
+        Common.currentDriver = currentDriver
+        startActivity(Intent(this, DriverHomeActivity::class.java))
     }
 }
