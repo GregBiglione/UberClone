@@ -192,10 +192,12 @@ class SplashScreenActivity : AppCompatActivity() {
     private fun onSignInResult(result: FirebaseAuthUIAuthenticationResult) {
         val response = result.idpResponse
         if (result.resultCode == RESULT_OK) {
-            KToasty.success(
+            Log.d(TAG, "$response, Welcome ${getCurrentUser()}")
+            KToasty.success(this, "Connection successfully!", Toast.LENGTH_SHORT).show()
+            /*KToasty.success(
                 this, "$response, Welcome ${getCurrentUser()} ",
                 Toast.LENGTH_SHORT
-            ).show()
+            ).show()*/
             //updateUI(getCurrentUser())
             // ...
         } else {
