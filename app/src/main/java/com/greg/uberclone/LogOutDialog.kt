@@ -11,7 +11,7 @@ import com.droidman.ktoasty.KToasty
 import com.google.firebase.auth.FirebaseAuth
 import com.greg.uberclone.ui.activity.SplashScreenActivity
 
-class LogOutDialogBox: DialogFragment() {
+class LogOutDialog: DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val builder = AlertDialog.Builder(context)

@@ -17,8 +17,10 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.navigation.NavigationView
 import com.greg.uberclone.Common
-import com.greg.uberclone.LogOutDialogBox
+import com.greg.uberclone.LogOutDialog
+import com.greg.uberclone.PhotoChoiceDialog
 import com.greg.uberclone.R
+import de.hdodenhof.circleimageview.CircleImageView
 
 class DriverHomeActivity : AppCompatActivity() {
 
@@ -26,6 +28,7 @@ class DriverHomeActivity : AppCompatActivity() {
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navView: NavigationView
     private lateinit var navController: NavController
+    private lateinit var headerView: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,7 +75,7 @@ class DriverHomeActivity : AppCompatActivity() {
                 goToDriverActivity()
             }
             if (it.itemId == R.id.nav_log_out){
-                showLogOutDialogBox()
+                showLogOutDialog()
             }
             true
         }
@@ -82,9 +85,9 @@ class DriverHomeActivity : AppCompatActivity() {
     //-------------------------------- Log out dialog box ------------------------------------------
     //----------------------------------------------------------------------------------------------
 
-    private fun showLogOutDialogBox() {
-        val logOutDialogBox = LogOutDialogBox()
-        logOutDialogBox.show(supportFragmentManager, "LogOutDialogBox")
+    private fun showLogOutDialog() {
+        val logOutDialog = LogOutDialog()
+        logOutDialog.show(supportFragmentManager, "LogOutDialogBox")
     }
 
     //----------------------------------------------------------------------------------------------
@@ -92,7 +95,7 @@ class DriverHomeActivity : AppCompatActivity() {
     //----------------------------------------------------------------------------------------------
 
     private fun setDriverInformation(){
-        val headerView = navView.getHeaderView(0)
+        headerView = navView.getHeaderView(0)
         val name = headerView.findViewById<View>(R.id.name_tv) as TextView
         val phoneNumber = headerView.findViewById<View>(R.id.phone_tv) as TextView
         val rating = headerView.findViewById<View>(R.id.rating_tv) as TextView
@@ -100,6 +103,27 @@ class DriverHomeActivity : AppCompatActivity() {
         name.text = Common.buildWelcomeMessage()
         phoneNumber.text = Common.currentDriver!!.phoneNumber
         rating.text = StringBuilder().append(Common.currentDriver!!.rating)//Common.currentDriver!!.rating.toString()
+        setDriverPhoto()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Set driver photo --------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun setDriverPhoto(){
+        val photo = headerView.findViewById<View>(R.id.photo) as CircleImageView
+        photo.setOnClickListener {
+            showPhotoChoiceDialog()
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Photo choice dialog box -------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun showPhotoChoiceDialog() {
+        val photoChoiceDialog = PhotoChoiceDialog()
+        photoChoiceDialog.show(supportFragmentManager, "PhotoChoiceDialogBox")
     }
 
     //----------------------------------------------------------------------------------------------

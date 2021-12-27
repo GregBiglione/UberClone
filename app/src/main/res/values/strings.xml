@@ -23,4 +23,6 @@
 
     <string name="title_camera">Camera</string>
     <string name="title_gallery">Gallery</string>
+    <string name="cancel">Cancel</string>
+    <string name="choose_photo">Choose a photo</string>
 </resources>
