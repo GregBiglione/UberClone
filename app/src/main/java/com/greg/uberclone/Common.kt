@@ -7,7 +7,7 @@ object Common {
     fun buildWelcomeMessage(): String {
         return StringBuilder("Welcome ")
             .append(currentDriver!!.firstName)
-            .append(" ")
+            .append("")
             .append(currentDriver!!.lastName)
             .toString()
     }

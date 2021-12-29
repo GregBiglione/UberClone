@@ -1,6 +1,8 @@
 package com.greg.uberclone.ui.activity
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.View
@@ -16,19 +18,19 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.navigation.NavigationView
-import com.greg.uberclone.Common
-import com.greg.uberclone.LogOutDialog
-import com.greg.uberclone.PhotoChoiceDialog
-import com.greg.uberclone.R
+import com.greg.uberclone.*
 import de.hdodenhof.circleimageview.CircleImageView
 
-class DriverHomeActivity : AppCompatActivity() {
+class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navView: NavigationView
     private lateinit var navController: NavController
     private lateinit var headerView: View
+    private lateinit var photo: CircleImageView
+    private lateinit var savePhoto: SavePhoto
+    private var photoFromStorage: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +52,7 @@ class DriverHomeActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+        savePhoto = SavePhoto()
         setDriverInformation()
         clickOnNavItem()
     }
@@ -111,7 +114,7 @@ class DriverHomeActivity : AppCompatActivity() {
     //----------------------------------------------------------------------------------------------
 
     private fun setDriverPhoto(){
-        val photo = headerView.findViewById<View>(R.id.photo) as CircleImageView
+        photo = headerView.findViewById<View>(R.id.photo) as CircleImageView
         photo.setOnClickListener {
             showPhotoChoiceDialog()
         }
@@ -122,7 +125,7 @@ class DriverHomeActivity : AppCompatActivity() {
     //----------------------------------------------------------------------------------------------
 
     private fun showPhotoChoiceDialog() {
-        val photoChoiceDialog = PhotoChoiceDialog()
+        val photoChoiceDialog = PhotoChoiceDialog(this)
         photoChoiceDialog.show(supportFragmentManager, "PhotoChoiceDialogBox")
     }
 
@@ -132,5 +135,15 @@ class DriverHomeActivity : AppCompatActivity() {
 
     private fun goToDriverActivity() {
         startActivity(Intent(this, DriverHomeActivity::class.java))
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Get Bitmap from dialog box --------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    override fun applyCameraPhoto(bitmapPhoto: Bitmap) {
+        photo.setImageBitmap(bitmapPhoto)
+        val tempUri: Uri? = savePhoto.getImageUri(this, bitmapPhoto)
+        photoFromStorage = tempUri
     }
 }
