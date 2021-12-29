@@ -21,7 +21,7 @@ import com.google.android.material.navigation.NavigationView
 import com.greg.uberclone.*
 import de.hdodenhof.circleimageview.CircleImageView
 
-class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener {
+class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener, PhotoChoiceDialog.GalleryListener {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var drawerLayout: DrawerLayout
@@ -31,6 +31,7 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
     private lateinit var photo: CircleImageView
     private lateinit var savePhoto: SavePhoto
     private var photoFromStorage: Uri? = null
+    private lateinit var imageConverter: ImageConverter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +54,7 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
         savePhoto = SavePhoto()
+        imageConverter = ImageConverter()
         setDriverInformation()
         clickOnNavItem()
     }
@@ -125,7 +127,7 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
     //----------------------------------------------------------------------------------------------
 
     private fun showPhotoChoiceDialog() {
-        val photoChoiceDialog = PhotoChoiceDialog(this)
+        val photoChoiceDialog = PhotoChoiceDialog(this, this)
         photoChoiceDialog.show(supportFragmentManager, "PhotoChoiceDialogBox")
     }
 
@@ -138,12 +140,23 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
     }
 
     //----------------------------------------------------------------------------------------------
-    //----------------------- Get Bitmap from dialog box --------------------------------------------
+    //----------------------- Get Bitmap from dialog box -------------------------------------------
     //----------------------------------------------------------------------------------------------
 
     override fun applyCameraPhoto(bitmapPhoto: Bitmap) {
         photo.setImageBitmap(bitmapPhoto)
         val tempUri: Uri? = savePhoto.getImageUri(this, bitmapPhoto)
+        photoFromStorage = tempUri
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Get Uri from dialog box ----------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    override fun applyGalleryPhoto(uriPhoto: Uri?) {
+        photo.setImageURI(uriPhoto)
+        val bitmap = imageConverter.uriToBitmap(uriPhoto, this)
+        val tempUri: Uri? = savePhoto.getImageUri(this, bitmap)
         photoFromStorage = tempUri
     }
 }
