@@ -33,4 +33,6 @@
     <string name="gallery_permission">Access gallery granted</string>
     <string name="gallery_denied">Access gallery denied</string>
     <string name="gallery_permission_message">We need your permission to access the camera</string>
+    <string name="information_update_success">Information updated succesfully</string>
+    <string name="uploading">Uploading:</string>
 </resources>

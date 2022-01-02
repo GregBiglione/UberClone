@@ -1,4 +1,4 @@
-package com.greg.uberclone
+package com.greg.uberclone.utils
 
 import android.content.Context
 import android.database.Cursor

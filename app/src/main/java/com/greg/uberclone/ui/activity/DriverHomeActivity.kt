@@ -4,9 +4,11 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.Menu
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.drawerlayout.widget.DrawerLayout
@@ -17,9 +19,22 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
+import com.bumptech.glide.Glide
+import com.droidman.ktoasty.KToasty
 import com.google.android.material.navigation.NavigationView
-import com.greg.uberclone.*
+import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
+import com.greg.uberclone.R
+import com.greg.uberclone.ui.dialog_box.LogOutDialog
+import com.greg.uberclone.ui.dialog_box.PhotoChoiceDialog
+import com.greg.uberclone.utils.Common
+import com.greg.uberclone.utils.ImageConverter
+import com.greg.uberclone.utils.SavePhoto
+import com.greg.uberclone.utils.UserUtils
 import de.hdodenhof.circleimageview.CircleImageView
+import java.util.*
 
 class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener, PhotoChoiceDialog.GalleryListener {
 
@@ -32,6 +47,8 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
     private lateinit var savePhoto: SavePhoto
     private var photoFromStorage: Uri? = null
     private lateinit var imageConverter: ImageConverter
+    //----------------------- Firebase storage -----------------------------------------------------
+    private lateinit var storageReference: StorageReference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,14 +117,24 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
     //----------------------------------------------------------------------------------------------
 
     private fun setDriverInformation(){
+        storageReference = FirebaseStorage.getInstance().reference
         headerView = navView.getHeaderView(0)
         val name = headerView.findViewById<View>(R.id.name_tv) as TextView
         val phoneNumber = headerView.findViewById<View>(R.id.phone_tv) as TextView
         val rating = headerView.findViewById<View>(R.id.rating_tv) as TextView
+        photo = headerView.findViewById<View>(R.id.photo) as CircleImageView
 
         name.text = Common.buildWelcomeMessage()
         phoneNumber.text = Common.currentDriver!!.phoneNumber
-        rating.text = StringBuilder().append(Common.currentDriver!!.rating)//Common.currentDriver!!.rating.toString()
+        rating.text = StringBuilder().append(Common.currentDriver!!.rating)
+
+
+       if (Common.currentDriver != null && Common.currentDriver!!.avatar != null && !TextUtils.isEmpty(Common.currentDriver!!.avatar)){
+            Glide.with(this)
+                .load(Common.currentDriver!!.avatar)
+                .into(photo)
+            KToasty.success(this, "Display image from storage", Toast.LENGTH_SHORT).show()
+        }
         setDriverPhoto()
     }
 
@@ -116,7 +143,6 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
     //----------------------------------------------------------------------------------------------
 
     private fun setDriverPhoto(){
-        photo = headerView.findViewById<View>(R.id.photo) as CircleImageView
         photo.setOnClickListener {
             showPhotoChoiceDialog()
         }
@@ -147,6 +173,7 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
         photo.setImageBitmap(bitmapPhoto)
         val tempUri: Uri? = savePhoto.getImageUri(this, bitmapPhoto)
         photoFromStorage = tempUri
+        saveAvatarPhoto()
     }
 
     //----------------------------------------------------------------------------------------------
@@ -158,5 +185,39 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
         val bitmap = imageConverter.uriToBitmap(uriPhoto, this)
         val tempUri: Uri? = savePhoto.getImageUri(this, bitmap)
         photoFromStorage = tempUri
+        saveAvatarPhoto()
+    }
+
+    /**-----------------------------------------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+     *----------------------- Firebase storage -------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Save driver avatar image ---------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun saveAvatarPhoto(){
+        if (photoFromStorage != null){
+            val avatarFolder = storageReference.child("avatars/" + FirebaseAuth.getInstance().currentUser!!.uid)
+            avatarFolder.putFile(photoFromStorage!!)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful){
+                        avatarFolder.downloadUrl.addOnSuccessListener { uri ->
+                            val updateAvatar = HashMap<String, Any>()
+                            updateAvatar["avatar"] = uri.toString()
+                            UserUtils.updateDriver(drawerLayout, updateAvatar)
+                        }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Snackbar.make(drawerLayout, e.message!!, Snackbar.LENGTH_LONG).show()
+                }
+                .addOnProgressListener { taskSnapshot ->
+                    val progress = (100.0*taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount)
+                    StringBuilder(getString(R.string.uploading)).append(progress).append("%")
+                }
+        }
     }
 }

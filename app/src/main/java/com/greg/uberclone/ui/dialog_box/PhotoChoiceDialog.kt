@@ -1,4 +1,4 @@
-package com.greg.uberclone
+package com.greg.uberclone.ui.dialog_box
 
 import android.app.Activity
 import android.app.AlertDialog
@@ -15,8 +15,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import com.droidman.ktoasty.KToasty
-import com.greg.uberclone.Constant.Companion.ACCESS_CAMERA
-import com.greg.uberclone.Constant.Companion.READ_STORAGE
+import com.greg.uberclone.utils.Constant.Companion.ACCESS_CAMERA
+import com.greg.uberclone.utils.Constant.Companion.READ_STORAGE
+import com.greg.uberclone.R
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionDeniedResponse

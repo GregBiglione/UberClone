@@ -22,8 +22,8 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import com.greg.uberclone.Common
-import com.greg.uberclone.Constant.Companion.DRIVER_INFORMATION
+import com.greg.uberclone.utils.Common
+import com.greg.uberclone.utils.Constant.Companion.DRIVER_INFORMATION
 import com.greg.uberclone.R
 import com.greg.uberclone.databinding.SplashProgressBarBinding
 import com.greg.uberclone.model.Driver
@@ -67,9 +67,11 @@ class SplashScreenActivity : AppCompatActivity() {
         super.onStop()
     }
 
-    /**---------------------------------------------------------------------------------------------
-     *                        Firebase
-     ---------------------------------------------------------------------------------------------*/
+    /**-----------------------------------------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+     *----------------------- Firebase ---------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
     //----------------------------------------------------------------------------------------------
     //----------------------- Initialize firebase --------------------------------------------------
@@ -296,7 +298,7 @@ class SplashScreenActivity : AppCompatActivity() {
                     val phoneNumber = phoneNumberEt.text.toString()
                     val rating = 0.0
 
-                    driver = Driver(firstName, lastName, phoneNumber, rating)
+                    driver = Driver(null, firstName, lastName, phoneNumber, rating)
                     checkRegistration()
                 }
             }

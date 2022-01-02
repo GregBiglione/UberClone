@@ -1,4 +1,4 @@
-package com.greg.uberclone
+package com.greg.uberclone.ui.dialog_box
 
 import android.app.AlertDialog
 import android.app.Dialog
@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import com.droidman.ktoasty.KToasty
 import com.google.firebase.auth.FirebaseAuth
+import com.greg.uberclone.R
 import com.greg.uberclone.ui.activity.SplashScreenActivity
 
 class LogOutDialog: DialogFragment() {
