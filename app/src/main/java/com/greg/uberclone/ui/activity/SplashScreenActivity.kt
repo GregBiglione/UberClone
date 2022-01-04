@@ -16,17 +16,20 @@ import com.firebase.ui.auth.AuthMethodPickerLayout
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
 import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import com.greg.uberclone.utils.Common
-import com.greg.uberclone.utils.Constant.Companion.DRIVER_INFORMATION
+import com.google.firebase.messaging.FirebaseMessaging
 import com.greg.uberclone.R
 import com.greg.uberclone.databinding.SplashProgressBarBinding
 import com.greg.uberclone.model.Driver
+import com.greg.uberclone.utils.Common
+import com.greg.uberclone.utils.Constant.Companion.DRIVER_INFORMATION
+import com.greg.uberclone.utils.UserUtils
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import java.util.concurrent.TimeUnit
@@ -150,6 +153,7 @@ class SplashScreenActivity : AppCompatActivity() {
     private fun initializeListener() {
         listener = FirebaseAuth.AuthStateListener {
             if (getCurrentUser() != null){
+                updateToken()
                 checkUserFromFirebase()
             }
             else{
@@ -333,5 +337,33 @@ class SplashScreenActivity : AppCompatActivity() {
     private fun goToDriverHomeActivity(currentDriver: Driver?) {
         Common.currentDriver = currentDriver
         startActivity(Intent(this, DriverHomeActivity::class.java))
+    }
+
+    /**-----------------------------------------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+     *----------------------- Firebase cloud messaging -----------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Update token ---------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun updateToken(){
+        FirebaseMessaging.getInstance().token
+                .addOnCompleteListener(OnCompleteListener { task ->
+                    if (!task.isSuccessful) {
+                        Log.w(TAG, "Fetching FCM registration token failed", task.exception)
+                        return@OnCompleteListener
+                    }
+                    val token = task.result
+                    UserUtils.updateToken(this, token)
+
+                    val msg = "Token value: $token"
+                    Log.d(TAG, msg)
+                })
+                .addOnFailureListener { e ->
+                    KToasty.error(this, e.message!! , Toast.LENGTH_LONG).show()
+                }
     }
 }
