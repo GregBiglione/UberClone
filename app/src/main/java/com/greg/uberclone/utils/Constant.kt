@@ -17,5 +17,7 @@ class Constant {
         const val NOTIFICATION_TITLE = "Title test FCM"
         const val NOTIFICATION_BODY = "Message test FCM"
         const val NOTIFICATION_CHANNEL_ID = "Uber_clone_channel"
+        //-------------------------------- Log -----------------------------------------------------
+        const val GEO_CODER_TAG = "GeoCodingLocation"
     }
 }

@@ -16,12 +16,12 @@ class LogOutDialog: DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val builder = AlertDialog.Builder(context)
-            .setTitle("Log out")
-            .setMessage("Do you really want to log out?")
-            .setNegativeButton("Cancel") { dialogInterface, _ ->
+            .setTitle(getString(R.string.log_out_title))
+            .setMessage(getString(R.string.log_out_message))
+            .setNegativeButton(getString(R.string.log_out_negative_button)) { dialogInterface, _ ->
                 dialogInterface.dismiss()
             }
-            .setPositiveButton("Log out") { dialogInterface, _ ->
+            .setPositiveButton(getString(R.string.log_out_positive_button)) { dialogInterface, _ ->
                 logOut()
                 dialogInterface.dismiss()
             }
@@ -41,7 +41,7 @@ class LogOutDialog: DialogFragment() {
 
     private fun logOut(){
         FirebaseAuth.getInstance().signOut()
-        KToasty.success(requireContext(), "Log out successfully", Toast.LENGTH_SHORT).show()
+        KToasty.success(requireContext(), getString(R.string.log_out_k_toasty), Toast.LENGTH_SHORT).show()
         goToSplashScreenActivity()
     }
 

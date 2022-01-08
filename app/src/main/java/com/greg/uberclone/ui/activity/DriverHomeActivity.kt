@@ -117,7 +117,7 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
     //----------------------------------------------------------------------------------------------
 
     private fun setDriverInformation(){
-        storageReference = FirebaseStorage.getInstance().reference
+        firebaseStorage()
         headerView = navView.getHeaderView(0)
         val name = headerView.findViewById<View>(R.id.name_tv) as TextView
         val phoneNumber = headerView.findViewById<View>(R.id.phone_tv) as TextView
@@ -128,12 +128,10 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
         phoneNumber.text = Common.currentDriver!!.phoneNumber
         rating.text = StringBuilder().append(Common.currentDriver!!.rating)
 
-
        if (Common.currentDriver != null && Common.currentDriver!!.avatar != null && !TextUtils.isEmpty(Common.currentDriver!!.avatar)){
             Glide.with(this)
                 .load(Common.currentDriver!!.avatar)
                 .into(photo)
-            KToasty.success(this, "Display image from storage", Toast.LENGTH_SHORT).show()
         }
         setDriverPhoto()
     }
@@ -193,6 +191,14 @@ class DriverHomeActivity : AppCompatActivity(), PhotoChoiceDialog.CameraListener
      *----------------------- Firebase storage -------------------------------------------------------------------------------------------------------------
      *------------------------------------------------------------------------------------------------------------------------------------------------------
     ------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------- Initialize storage ---------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun firebaseStorage(){
+        storageReference = FirebaseStorage.getInstance().reference
+    }
 
     //----------------------------------------------------------------------------------------------
     //----------------------- Save driver avatar image ---------------------------------------------

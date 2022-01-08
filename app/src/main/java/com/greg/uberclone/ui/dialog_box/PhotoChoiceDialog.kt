@@ -77,7 +77,8 @@ class PhotoChoiceDialog(private val cameraListener: CameraListener, private val 
                     }
 
                     override fun onPermissionDenied(permissionDeniedResponse: PermissionDeniedResponse?) {
-                        KToasty.error(requireContext(), "Permission ${permissionDeniedResponse!!.permissionName} was denied",
+                        KToasty.error(requireContext(), getString(R.string.permission_denied_part_1) + " " + permissionDeniedResponse!!.permissionName
+                                + " " + getString(R.string.permission_denied_part_2),
                                 Toast.LENGTH_SHORT).show()
                     }
 
@@ -134,7 +135,8 @@ class PhotoChoiceDialog(private val cameraListener: CameraListener, private val 
                     }
 
                     override fun onPermissionDenied(permissionDeniedResponse: PermissionDeniedResponse?) {
-                        KToasty.error(requireContext(), "Permission ${permissionDeniedResponse!!.permissionName} was denied",
+                        KToasty.error(requireContext(), getString(R.string.permission_denied_part_1) + " " + permissionDeniedResponse!!.permissionName
+                                + " " + getString(R.string.permission_denied_part_2),
                                 Toast.LENGTH_SHORT).show()
                     }
 

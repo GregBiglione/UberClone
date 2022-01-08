@@ -2,6 +2,8 @@ package com.greg.uberclone.ui.home
 
 import android.annotation.SuppressLint
 import android.content.res.Resources
+import android.location.Address
+import android.location.Geocoder
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
@@ -25,18 +27,20 @@ import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import com.greg.uberclone.R
+import com.greg.uberclone.databinding.FragmentHomeBinding
 import com.greg.uberclone.utils.Constant
 import com.greg.uberclone.utils.Constant.Companion.ACCESS_FINE_LOCATION
 import com.greg.uberclone.utils.Constant.Companion.DEFAULT_ZOOM
 import com.greg.uberclone.utils.Constant.Companion.INFO_CONNECTED
-import com.greg.uberclone.R
-import com.greg.uberclone.databinding.FragmentHomeBinding
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionDeniedResponse
 import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
+import java.io.IOException
+import java.util.*
 
 class HomeFragment : Fragment() {
 
@@ -52,8 +56,13 @@ class HomeFragment : Fragment() {
     //------------------- Online system ------------------------------------------------------------
     private lateinit var geoFire: GeoFire
     private lateinit var onlineDatabaseReference: DatabaseReference
-    private lateinit var currentDriverReference: DatabaseReference
+    private var currentDriverReference: DatabaseReference? = null
     private lateinit var driverLocationReference: DatabaseReference
+    //------------------- Geo coder ----------------------------------------------------------------
+    private lateinit var geoCoder: Geocoder
+    private lateinit var cityName: String
+    private var lat: Double = 0.0
+    private var lng: Double = 0.0
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -121,8 +130,6 @@ class HomeFragment : Fragment() {
 
     private fun getLocationRequest(){
         getDriverLocationFromDatabase()
-        getRealTimeLocation()
-        registerOnlineSystem()
         locationRequest = LocationRequest.create()
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         locationRequest.fastestInterval = 3000
@@ -141,21 +148,15 @@ class HomeFragment : Fragment() {
         override fun onLocationResult(locationResult: LocationResult) {
             super.onLocationResult(locationResult)
 
-            newPosition = LatLng(locationResult.lastLocation.latitude, locationResult.lastLocation.longitude)
+            val newLat = locationResult.lastLocation.latitude
+            val newLng = locationResult.lastLocation.longitude
+
+            newPosition = LatLng(newLat, newLng)
             map.addMarker(MarkerOptions().position(newPosition))
             moveCamera()
             zoomOnLocation()
-            //------------------- Update real time location  ---------------------------------------
-            geoFire.setLocation(
-                    FirebaseAuth.getInstance().currentUser!!.uid, GeoLocation(locationResult.lastLocation.latitude, locationResult.lastLocation.longitude)
-            ){key: String?, databaseError: DatabaseError? ->
-                if (databaseError != null){
-                    Snackbar.make(mapFragment.requireView(), databaseError.message, Snackbar.LENGTH_LONG).show()
-                }
-                else{
-                    Snackbar.make(mapFragment.requireView(), "You're online!", Snackbar.LENGTH_SHORT).show()
-                }
-            }
+            //------------------- Geo coder  -------------------------------------------------------
+            getCityNameFromLocation(newLat, newLng)
         }
     }
 
@@ -246,8 +247,8 @@ class HomeFragment : Fragment() {
 
     private val onlineValueEventListener = object : ValueEventListener{
         override fun onDataChange(snapshot: DataSnapshot) {
-            if (snapshot.exists()){
-                currentDriverReference.onDisconnect().removeValue()
+            if (snapshot.exists() && currentDriverReference != null){
+                currentDriverReference!!.onDisconnect().removeValue()
             }
         }
 
@@ -257,7 +258,7 @@ class HomeFragment : Fragment() {
     }
 
     //----------------------------------------------------------------------------------------------
-    //-------------------------------- Get current driver ------------------------------------------
+    //-------------------------------- Remove location ---------------------------------------------
     //----------------------------------------------------------------------------------------------
 
     private fun removeLocation(){
@@ -303,5 +304,70 @@ class HomeFragment : Fragment() {
 
     private fun getRealTimeLocation(){
         geoFire = GeoFire(driverLocationReference)
+    }
+
+    /**-----------------------------------------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+     *----------------------- Geo coder --------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Geo coder ---------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun initializeGeoCoder(){
+        geoCoder = Geocoder(requireContext(), Locale.getDefault())
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Get city name from location ---------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    fun getCityNameFromLocation(latitude: Double, longitude: Double): String {
+        initializeGeoCoder()
+        lat = latitude
+        lng = longitude
+        try {
+            val addressList = geoCoder.getFromLocation(latitude, longitude, 1)
+            if (addressList != null && addressList.size > 0){
+                val address = (addressList as MutableList<Address>)[0]
+
+                if (address.adminArea == null){
+                    cityName = address.locality
+                    saveCityNameInRealTimeDatabase()
+                }
+                if (address.locality == null){
+                    cityName = address.adminArea
+                    saveCityNameInRealTimeDatabase()
+                }
+            }
+
+        } catch (e: IOException) {
+            Log.e(Constant.GEO_CODER_TAG, "Unable to connect to GeoCoder", e)
+        }
+        return cityName
+    }
+
+    private fun saveCityNameInRealTimeDatabase(){
+        driverLocationReference = FirebaseDatabase.getInstance().getReference(Constant.DRIVER_LOCATION)
+                .child(cityName)
+        currentDriverReference = driverLocationReference.child(
+                FirebaseAuth.getInstance().currentUser!!.uid
+        )
+        getRealTimeLocation()
+        //------------------- Update real time location  -------------------------------------------
+        geoFire.setLocation(
+                FirebaseAuth.getInstance().currentUser!!.uid, GeoLocation(lat, lng)
+        ){ _: String?, databaseError: DatabaseError? ->
+            if (databaseError != null){
+                Snackbar.make(mapFragment.requireView(), databaseError.message, Snackbar.LENGTH_LONG).show()
+            }
+            else{
+                Snackbar.make(mapFragment.requireView(), "You're online!", Snackbar.LENGTH_SHORT).show()
+            }
+
+            registerOnlineSystem()
+        }
     }
 }

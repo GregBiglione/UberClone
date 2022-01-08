@@ -19,11 +19,12 @@ object Common {
     var currentDriver: Driver? = null
     
     fun buildWelcomeMessage(): String {
-        return StringBuilder("Welcome ")
-            .append(currentDriver!!.firstName!!.trim())
-            .append(" ")
-            .append(currentDriver!!.lastName!!.trim())
-            .toString()
+        return StringBuilder("Welcome")
+                .append(" ")
+                .append(currentDriver!!.firstName!!.trim())
+                .append(" ")
+                .append(currentDriver!!.lastName!!.trim())
+                .toString()
     }
 
     fun showNotification(context: Context, id: Int, title: String?, body: String?, intent: Intent?) {
