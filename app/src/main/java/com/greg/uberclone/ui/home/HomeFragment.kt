@@ -23,6 +23,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
@@ -53,6 +54,7 @@ class HomeFragment : Fragment() {
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var newPosition: LatLng
     private lateinit var userLocation: LatLng
+    private var marker: Marker? = null
     //------------------- Online system ------------------------------------------------------------
     private lateinit var geoFire: GeoFire
     private lateinit var onlineDatabaseReference: DatabaseReference
@@ -60,7 +62,7 @@ class HomeFragment : Fragment() {
     private lateinit var driverLocationReference: DatabaseReference
     //------------------- Geo coder ----------------------------------------------------------------
     private lateinit var geoCoder: Geocoder
-    private lateinit var cityName: String
+    private var cityName: String = ""
     private var lat: Double = 0.0
     private var lng: Double = 0.0
 
@@ -96,8 +98,8 @@ class HomeFragment : Fragment() {
     //------------------- Move camera --------------------------------------------------------------
     //----------------------------------------------------------------------------------------------
 
-    private fun moveCamera() {
-        map.moveCamera(CameraUpdateFactory.newLatLng(newPosition))
+    private fun moveCamera(currentLatLng: LatLng) {
+        map.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng))
     }
 
     //----------------------------------------------------------------------------------------------
@@ -122,6 +124,7 @@ class HomeFragment : Fragment() {
         catch (e: Resources.NotFoundException){
             Log.e("Style error", e.message!!)
         }
+        Snackbar.make(mapFragment.requireView(), "You're online!", Snackbar.LENGTH_SHORT).show()
     }
 
     //----------------------------------------------------------------------------------------------
@@ -132,9 +135,9 @@ class HomeFragment : Fragment() {
         getDriverLocationFromDatabase()
         locationRequest = LocationRequest.create()
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-        locationRequest.fastestInterval = 3000
-        locationRequest.interval = 5000
-        locationRequest.smallestDisplacement = 10f
+        locationRequest.fastestInterval = 15000
+        locationRequest.interval = 10000
+        locationRequest.smallestDisplacement = 50f
 
         locationCallback
         createLocationService()
@@ -152,9 +155,7 @@ class HomeFragment : Fragment() {
             val newLng = locationResult.lastLocation.longitude
 
             newPosition = LatLng(newLat, newLng)
-            map.addMarker(MarkerOptions().position(newPosition))
-            moveCamera()
-            zoomOnLocation()
+            addMarker(newPosition)
             //------------------- Geo coder  -------------------------------------------------------
             getCityNameFromLocation(newLat, newLng)
         }
@@ -182,10 +183,11 @@ class HomeFragment : Fragment() {
     @SuppressLint("MissingPermission")
     private fun lastKnownLocation(){
         fusedLocationProviderClient.lastLocation
-            .addOnSuccessListener { location ->
-                userLocation = LatLng(location.latitude, location.longitude)
-                map.addMarker(MarkerOptions().position(userLocation))
-                moveCameraToLastKnownLocation()
+            .addOnSuccessListener { location/*: Location?*/ ->
+                if (location != null) {
+                    userLocation = LatLng(location.latitude, location.longitude)
+                    addMarker(userLocation)
+                }
             }.addOnFailureListener { e ->
                 KToasty.error(requireContext(), "$e.message",
                     Toast.LENGTH_SHORT).show()
@@ -194,11 +196,19 @@ class HomeFragment : Fragment() {
     }
 
     //----------------------------------------------------------------------------------------------
-    //------------------- Move camera to last know location-----------------------------------------
+    //-------------------------------- Add marker --------------------------------------------------
     //----------------------------------------------------------------------------------------------
 
-    private fun moveCameraToLastKnownLocation() {
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, DEFAULT_ZOOM))
+    private fun addMarker(markerLatLng: LatLng){
+        if (marker == null) {
+            val options = MarkerOptions().position(markerLatLng)
+                    .title("Marker Title")
+            marker = map.addMarker(options)
+        } else {
+            marker!!.position = markerLatLng
+        }
+        moveCamera(markerLatLng)
+        zoomOnLocation()
     }
 
     //----------------------------------------------------------------------------------------------
@@ -330,6 +340,7 @@ class HomeFragment : Fragment() {
         lng = longitude
         try {
             val addressList = geoCoder.getFromLocation(latitude, longitude, 1)
+            Log.d("AddressList", addressList.toString())
             if (addressList != null && addressList.size > 0){
                 val address = (addressList as MutableList<Address>)[0]
 
@@ -362,9 +373,6 @@ class HomeFragment : Fragment() {
         ){ _: String?, databaseError: DatabaseError? ->
             if (databaseError != null){
                 Snackbar.make(mapFragment.requireView(), databaseError.message, Snackbar.LENGTH_LONG).show()
-            }
-            else{
-                Snackbar.make(mapFragment.requireView(), "You're online!", Snackbar.LENGTH_SHORT).show()
             }
 
             registerOnlineSystem()
