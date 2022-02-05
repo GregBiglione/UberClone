@@ -21,15 +21,13 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MapStyleOptions
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.greg.uberclone.R
 import com.greg.uberclone.databinding.FragmentHomeBinding
+import com.greg.uberclone.remote.RetrofitService
 import com.greg.uberclone.utils.Constant
 import com.greg.uberclone.utils.Constant.Companion.ACCESS_FINE_LOCATION
 import com.greg.uberclone.utils.Constant.Companion.DEFAULT_ZOOM
@@ -40,6 +38,8 @@ import com.karumi.dexter.listener.PermissionDeniedResponse
 import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import org.json.JSONArray
 import java.io.IOException
 import java.util.*
 
@@ -65,6 +65,18 @@ class HomeFragment : Fragment() {
     private var cityName: String = ""
     private var lat: Double = 0.0
     private var lng: Double = 0.0
+    //------------------- Routes -------------------------------------------------------------------
+    /*private val compositeDisposable = CompositeDisposable()
+    private lateinit var iRetrofitService: RetrofitService
+    private var blackPolyline: Polyline? = null
+    private var greyPolyline: Polyline? = null
+    private var polylineOptions: PolylineOptions? = null
+    private var blackPolylineOptions: PolylineOptions? = null
+    private var polylineList: ArrayList<LatLng?>? = null
+    private var originMarker: Marker? = null
+    private var destinationMarker: Marker? = null
+    private lateinit var jsonArray: JSONArray
+    private lateinit var latLngBound: LatLngBounds*/
 
     override fun onCreateView(
         inflater: LayoutInflater,

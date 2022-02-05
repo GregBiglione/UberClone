@@ -23,5 +23,7 @@ class Constant {
         const val REQUEST_DRIVER_TITLE = "RequestDriver"
         const val PICKUP_LOCATION = "PickupLocation"
         const val RIDER_KEY = "RiderKey"
+        //-------------------------------- Url -----------------------------------------------------
+        const val BASE_URL = "https://maps.googleapis.com/"
     }
 }
