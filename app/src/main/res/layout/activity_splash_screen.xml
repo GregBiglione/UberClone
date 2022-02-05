@@ -21,11 +21,13 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="10dp"
             android:padding="16dp"
-            android:background="@color/phone_color"
+            android:backgroundTint="@color/phone_color"
             android:text="@string/log_in_with_phone_number"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:drawableStart="@drawable/phone_black"/>
+            android:drawableStart="@drawable/phone_black"
+            android:tint="@color/white"
+            android:tintMode="@color/white"/>
 
         <Button
             android:id="@+id/google_btn"

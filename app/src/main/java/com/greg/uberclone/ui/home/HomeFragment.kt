@@ -202,7 +202,6 @@ class HomeFragment : Fragment() {
     private fun addMarker(markerLatLng: LatLng){
         if (marker == null) {
             val options = MarkerOptions().position(markerLatLng)
-                    .title("Marker Title")
             marker = map.addMarker(options)
         } else {
             marker!!.position = markerLatLng

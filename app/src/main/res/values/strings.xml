@@ -45,4 +45,9 @@
     <string name="welcome">Welcome</string>
     <string name="permission_denied_part_1">Permission</string>
     <string name="permission_denied_part_2">was denied</string>
+    <string name="decline">Decline</string>
+    <string name="uber">Uber</string>
+    <string name="_4_75">4.75</string>
+    <string name="_2_min">2 min</string>
+    <string name="_0_4_km">0.4 km</string>
 </resources>
