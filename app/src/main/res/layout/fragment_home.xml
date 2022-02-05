@@ -38,7 +38,7 @@
         app:chipBackgroundColor="@color/colorAccent"
         app:chipIcon="@drawable/ic_baseline_clear_24"
         app:chipIconTint="@color/white"
-        android:visibility="visible"/>
+        android:visibility="gone"/>
 
     <androidx.cardview.widget.CardView
         android:id="@+id/accept_cv"
@@ -48,7 +48,7 @@
         android:layout_margin="8dp"
         app:cardBackgroundColor="@color/colorAccent"
         app:cardCornerRadius="8dp"
-        android:visibility="visible">
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="wrap_content"

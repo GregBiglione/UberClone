@@ -19,5 +19,9 @@ class Constant {
         const val NOTIFICATION_CHANNEL_ID = "Uber_clone_channel"
         //-------------------------------- Log -----------------------------------------------------
         const val GEO_CODER_TAG = "GeoCodingLocation"
+        //-------------------------------- Driver request ------------------------------------------
+        const val REQUEST_DRIVER_TITLE = "RequestDriver"
+        const val PICKUP_LOCATION = "PickupLocation"
+        const val RIDER_KEY = "RiderKey"
     }
 }
