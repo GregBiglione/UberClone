@@ -50,4 +50,5 @@
     <string name="_4_75">4.75</string>
     <string name="_2_min">2 min</string>
     <string name="_0_4_km">0.4 km</string>
+    <string name="permission_required">Permission required</string>
 </resources>

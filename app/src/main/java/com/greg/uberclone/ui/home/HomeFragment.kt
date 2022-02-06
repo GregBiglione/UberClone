@@ -1,16 +1,23 @@
 package com.greg.uberclone.ui.home
 
+import android.Manifest
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.content.res.Resources
+import android.graphics.Color
 import android.location.Address
 import android.location.Geocoder
+import android.location.Location
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.droidman.ktoasty.KToasty
@@ -27,7 +34,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.greg.uberclone.R
 import com.greg.uberclone.databinding.FragmentHomeBinding
+import com.greg.uberclone.event.DriverReceivedRequestEvent
 import com.greg.uberclone.remote.RetrofitService
+import com.greg.uberclone.ui.activity.DriverHomeActivity
+import com.greg.uberclone.utils.Common
 import com.greg.uberclone.utils.Constant
 import com.greg.uberclone.utils.Constant.Companion.ACCESS_FINE_LOCATION
 import com.greg.uberclone.utils.Constant.Companion.DEFAULT_ZOOM
@@ -38,10 +48,18 @@ import com.karumi.dexter.listener.PermissionDeniedResponse
 import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.IOException
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class HomeFragment : Fragment() {
 
@@ -66,17 +84,22 @@ class HomeFragment : Fragment() {
     private var lat: Double = 0.0
     private var lng: Double = 0.0
     //------------------- Routes -------------------------------------------------------------------
-    /*private val compositeDisposable = CompositeDisposable()
+    private val compositeDisposable = CompositeDisposable()
     private lateinit var iRetrofitService: RetrofitService
     private var blackPolyline: Polyline? = null
     private var greyPolyline: Polyline? = null
     private var polylineOptions: PolylineOptions? = null
     private var blackPolylineOptions: PolylineOptions? = null
     private var polylineList: ArrayList<LatLng?>? = null
-    private var originMarker: Marker? = null
-    private var destinationMarker: Marker? = null
     private lateinit var jsonArray: JSONArray
-    private lateinit var latLngBound: LatLngBounds*/
+    private lateinit var latLngBound: LatLngBounds
+    private lateinit var riderSendingRequestLocation: Location
+    private var driverReceivedRequestEvent: DriverReceivedRequestEvent? = null
+    private lateinit var time: JSONObject
+    private lateinit var duration: String
+    private lateinit var estimateDistance: JSONObject
+    private lateinit var distance: String
+    private lateinit var destination: LatLng
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -86,6 +109,7 @@ class HomeFragment : Fragment() {
         homeViewModel =
             ViewModelProvider(this)[HomeViewModel::class.java]
         binding = FragmentHomeBinding.inflate(layoutInflater)
+        //initializeChip(binding.root)
         getLocationRequest()
         return binding.root
     }
@@ -144,6 +168,7 @@ class HomeFragment : Fragment() {
     //----------------------------------------------------------------------------------------------
 
     private fun getLocationRequest(){
+        initializeRetrofit()
         getDriverLocationFromDatabase()
         locationRequest = LocationRequest.create()
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
@@ -185,10 +210,21 @@ class HomeFragment : Fragment() {
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper()!!)
     }
 
+    override fun onStart() {
+        super.onStart()
+        EventBus.getDefault().register(this)
+    }
+
     override fun onDestroy() {
         fusedLocationProviderClient.removeLocationUpdates(locationCallback)
         removeLocation()
         removeOnlineListener()
+
+        compositeDisposable.clear()
+        if(EventBus.getDefault().hasSubscriberForEvent(DriverHomeActivity::class.java)){
+            EventBus.getDefault().removeStickyEvent(DriverHomeActivity::class.java)
+        }
+        EventBus.getDefault().unregister(this)
         super.onDestroy()
     }
 
@@ -388,5 +424,244 @@ class HomeFragment : Fragment() {
 
             registerOnlineSystem()
         }
+    }
+
+    /**-----------------------------------------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+     *----------------------- Driver request received ------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Initialize retrofit -----------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun initializeRetrofit(){
+        iRetrofitService = RetrofitService.getInstance()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Driver received request event -------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
+    fun onDriverReceivedRequestEvent(event: DriverReceivedRequestEvent){
+        driverReceivedRequestEvent = event
+        riderFromRequestLocation()
+    }
+
+    private fun riderFromRequestLocation(){
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Snackbar.make(mapFragment.requireView(), getString(R.string.permission_required), Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        fusedLocationProviderClient.lastLocation
+                .addOnSuccessListener { location ->
+                    riderSendingRequestLocation = location
+                    drawPath()
+
+                }.addOnFailureListener { e ->
+                    Snackbar.make(mapFragment.requireView(), e.message!!, Snackbar.LENGTH_SHORT).show()
+                }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Draw path ---------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun drawPath() {
+        //-------------------------------- Request api ---------------------------------------------
+        compositeDisposable.add(iRetrofitService.getDirections(
+                "driving",
+                "less_driving",
+                //selectedPlaceEvent.originString,
+                Common.buildRiderSendingRequestLocation(riderSendingRequestLocation.latitude, riderSendingRequestLocation.longitude),
+                driverReceivedRequestEvent!!.pickupLocation,
+                getString(R.string.ApiKey))
+        !!.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { returnResult ->
+                    Log.d("Api return", returnResult)
+                    try {
+                        val jsonObject = JSONObject(returnResult)
+                        jsonArray = jsonObject.getJSONArray("routes")
+
+                        for (j in 0 until jsonArray.length()){
+                            val route = jsonArray.getJSONObject(j)
+                            val poly = route.getJSONObject("overview_polyline")
+                            val polyline = poly.getString("points")
+                            polylineList = Common.decodePoly(polyline)
+                        }
+
+                        //-------------------------------- Polyline options ------------------------
+                        pathStyle()
+                        //-------------------------------- Animation -------------------------------
+                        animate()
+
+                    } catch (e: Exception) {
+                        Snackbar.make(mapFragment.requireView(), e.message!!, Snackbar.LENGTH_LONG).show()
+                    }
+                }
+        )
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Path style --------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun pathStyle(){
+        polylineOptions = PolylineOptions()
+        polylineOptions!!.color(Color.GRAY)
+        polylineOptions!!.width(12f)
+        polylineOptions!!.startCap(SquareCap())
+        polylineOptions!!.jointType(JointType.ROUND)
+        polylineOptions!!.addAll(polylineList!!)
+        greyPolyline = map.addPolyline(polylineOptions!!)
+        blackPolylineStyle()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Black polyline -----------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun blackPolylineStyle(){
+        blackPolylineOptions = PolylineOptions()
+        blackPolylineOptions!!.color(Color.BLACK)
+        blackPolylineOptions!!.width(5f)
+        blackPolylineOptions!!.startCap(SquareCap())
+        blackPolylineOptions!!.jointType(JointType.ROUND)
+        blackPolylineOptions!!.addAll(polylineList!!)
+        blackPolyline = map.addPolyline(blackPolylineOptions!!)
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Animation ---------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun animate(){
+        val valueAnimator = ValueAnimator.ofInt(0,100)
+        valueAnimator.duration = 1100
+        valueAnimator.repeatCount = ValueAnimator.INFINITE
+        valueAnimator.interpolator = LinearInterpolator()
+
+        valueAnimator.addUpdateListener { value ->
+            val points =  greyPolyline!!.points
+            val percentValue = value.animatedValue.toString().toInt()
+            val size = points.size
+            val newPoints = (size * (percentValue / 100))
+            val p = points.subList(0, newPoints)
+            blackPolyline!!.points = (p)
+        }
+
+        valueAnimator.start()
+
+        val origin = LatLng(riderSendingRequestLocation.latitude, riderSendingRequestLocation.longitude)
+        destination = LatLng(
+                driverReceivedRequestEvent!!.pickupLocation.split(",")[0].toDouble(),
+                driverReceivedRequestEvent!!.pickupLocation.split(",")[1].toDouble()
+        )
+
+        latLngBound = LatLngBounds.Builder().include(origin)
+                .include(destination)
+                .build()
+
+        //-------------------------------- Add tie fighter icon ------------------------------------
+        addTieFighterIcon()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Add tie fighter icon ----------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun addTieFighterIcon(){
+        val objects = jsonArray.getJSONObject(0)
+        val legs = objects.getJSONArray("legs")
+        val legsObject = legs.getJSONObject(0)
+
+        time = legsObject.getJSONObject("duration")
+        duration = time.getString("text")
+
+        estimateDistance = legsObject.getJSONObject("distance")
+        distance = estimateDistance.getString("text")
+
+        initializeChip()
+        addMarkerForRequest(destination)
+        //-------------------------------- Display request layout ----------------------------------
+        showChip()
+        showAcceptLayout()
+        countdown()
+        //-------------------------------- Move camera ---------------------------------------------
+        moveCameraToLatLngBounds()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Add marker for request --------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun addMarkerForRequest(destination: LatLng) {
+        map.addMarker(MarkerOptions().position(destination).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                .title("Pickup Location"))
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Move camera to lat lng bounds -------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun moveCameraToLatLngBounds() {
+        map.moveCamera(CameraUpdateFactory.newLatLngBounds(latLngBound, 160))
+        zoomToBounds()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Zoom to bounds ----------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun zoomToBounds(){
+        map.moveCamera(CameraUpdateFactory.zoomTo(map.cameraPosition.zoom-1))
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Initialize chip ---------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun initializeChip() {
+        binding.estimateTimeTv.text = duration
+        binding.estimateDistanceTv.text = distance
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Shop chip ---------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun showChip(){
+       binding.chipDecline.visibility = View.VISIBLE
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Show accept layout ------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun showAcceptLayout(){
+        binding.acceptCv.visibility = View.VISIBLE
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Countdown ---------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun countdown(){
+        Observable.interval(100, TimeUnit.MILLISECONDS)
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext { x ->
+                    binding.circularProgressBar.progress += 1f
+                }
+                .takeUntil { aLong -> aLong == "100".toLong() } // 10 seconds
+                .doOnComplete {
+                    KToasty.success(requireContext(), "Fake accept action", Toast.LENGTH_LONG).show()
+                }
+                .subscribe()
     }
 }

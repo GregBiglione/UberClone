@@ -33,7 +33,7 @@ class Notification: FirebaseMessagingService() {
         super.onMessageReceived(remoteMessage)
         val data = remoteMessage.data
         if (data != null){
-            if (data[NOTIFICATION_TITLE]!! == REQUEST_DRIVER_TITLE){ //TODO 1 check if no problem data[] 3:15
+            if (data[NOTIFICATION_TITLE]!! == REQUEST_DRIVER_TITLE){
                 EventBus.getDefault().postSticky(DriverReceivedRequestEvent(data[RIDER_KEY]!!,data[PICKUP_LOCATION]!!))
             }
             else{

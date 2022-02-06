@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.google.android.gms.maps.model.LatLng
 import com.greg.uberclone.R
 import com.greg.uberclone.model.Driver
 import com.greg.uberclone.utils.Constant.Companion.NOTIFICATION_CHANNEL_ID
@@ -66,5 +67,55 @@ object Common {
             val notification = notificationBuilder.build()
             notificationManager.notify(id, notification)
         }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Rider request location from builder -------------------------
+    //----------------------------------------------------------------------------------------------
+
+    fun buildRiderSendingRequestLocation(fromLat: Double?, fromLng: Double?): String {
+        return StringBuilder(fromLat.toString())
+                .append(",")
+                .append(fromLng.toString())
+                .toString()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Decode poly -------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    fun decodePoly(encoded: String): ArrayList<LatLng?> {
+        val poly = ArrayList<LatLng?>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].toInt() - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dLat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lat += dLat
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].toInt() - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dLng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lng += dLng
+            val p = LatLng(
+                    lat.toDouble() / 1E5,
+                    lng.toDouble() / 1E5
+            )
+            poly.add(p)
+        }
+        return poly
     }
 }
