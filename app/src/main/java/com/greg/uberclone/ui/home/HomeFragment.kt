@@ -2,7 +2,6 @@ package com.greg.uberclone.ui.home
 
 import android.Manifest
 import android.animation.ValueAnimator
-import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Color
@@ -68,7 +67,7 @@ class HomeFragment : Fragment() {
     private lateinit var map: GoogleMap
     private lateinit var mapFragment: SupportMapFragment
     //------------------- Location -----------------------------------------------------------------
-    private lateinit var locationRequest: LocationRequest
+    private var locationRequest: LocationRequest? = null
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var newPosition: LatLng
     private lateinit var userLocation: LatLng
@@ -170,21 +169,47 @@ class HomeFragment : Fragment() {
     private fun getLocationRequest(){
         initializeRetrofit()
         getDriverLocationFromDatabase()
-        locationRequest = LocationRequest.create()
-        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-        locationRequest.fastestInterval = 15000
-        locationRequest.interval = 10000
-        locationRequest.smallestDisplacement = 50f
 
-        locationCallback
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Snackbar.make(binding.rootLayout, getString(R.string.permission_required), Snackbar.LENGTH_LONG).show()
+            return
+        }
+        buildLocationRequest()
+        buildLocationCallback()
         createLocationService()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //------------------- Location request ---------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun buildLocationRequest(){
+        if (locationRequest == null){
+            locationRequest = LocationRequest.create()
+            locationRequest!!.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            locationRequest!!.fastestInterval = 15000
+            locationRequest!!.interval = 10000
+            locationRequest!!.smallestDisplacement = 50f
+        }
     }
 
     //----------------------------------------------------------------------------------------------
     //------------------- Location callback --------------------------------------------------------
     //----------------------------------------------------------------------------------------------
 
-    private var locationCallback = object: LocationCallback(){
+    private fun buildLocationCallback(){
+        if (locationCallback == null){
+            locationCallback
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //------------------- Location callback --------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private var locationCallback: LocationCallback? = object: LocationCallback(){
         override fun onLocationResult(locationResult: LocationResult) {
             super.onLocationResult(locationResult)
 
@@ -204,10 +229,15 @@ class HomeFragment : Fragment() {
 
     //-------------------------------- Location service --------------------------------------------
 
-    @SuppressLint("MissingPermission")
     private fun createLocationService() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireContext())
-        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper()!!)
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Snackbar.make(binding.rootLayout, getString(R.string.permission_required), Snackbar.LENGTH_LONG).show()
+            return
+        }
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest!!, locationCallback!!, Looper.myLooper()!!)
     }
 
     override fun onStart() {
@@ -216,7 +246,7 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroy() {
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback)
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback!!)
         removeLocation()
         removeOnlineListener()
 
@@ -228,8 +258,13 @@ class HomeFragment : Fragment() {
         super.onDestroy()
     }
 
-    @SuppressLint("MissingPermission")
     private fun lastKnownLocation(){
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Snackbar.make(binding.rootLayout, getString(R.string.permission_required), Snackbar.LENGTH_LONG).show()
+            return
+        }
         fusedLocationProviderClient.lastLocation
             .addOnSuccessListener { location/*: Location?*/ ->
                 if (location != null) {
@@ -267,6 +302,10 @@ class HomeFragment : Fragment() {
             .withPermission(ACCESS_FINE_LOCATION)
             .withListener(object: PermissionListener{
                 override fun onPermissionGranted(permissionGrantedResponse: PermissionGrantedResponse?) {
+                    //-------------------------------- Location ------------------------------------
+                    buildLocationRequest()
+                    buildLocationCallback()
+                    createLocationService()
                     clickOnMyLocation()
                 }
 
