@@ -1,6 +1,7 @@
 package com.greg.uberclone.utils
 
 import android.Manifest
+import com.greg.uberclone.R
 
 class Constant {
     companion object{
@@ -25,5 +26,8 @@ class Constant {
         const val RIDER_KEY = "RiderKey"
         //-------------------------------- Url -----------------------------------------------------
         const val BASE_URL = "https://maps.googleapis.com/"
+        const val BASE_URL_FCM = "https://fcm.googleapis.com/"
+        //-------------------------------- Firebase key --------------------------------------------
+        const val FIREBASE_KEY = R.string.FirebaseKey
     }
 }
