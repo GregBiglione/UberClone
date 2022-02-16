@@ -51,4 +51,7 @@
     <string name="_2_min">2 min</string>
     <string name="_0_4_km">0.4 km</string>
     <string name="permission_required">Permission required</string>
+    <string name="token_not_found">Token not found</string>
+    <string name="decline_failed">Decline failed</string>
+    <string name="decline_success">You have declined this request</string>
 </resources>

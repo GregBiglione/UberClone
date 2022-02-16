@@ -41,6 +41,7 @@ import com.greg.uberclone.utils.Constant
 import com.greg.uberclone.utils.Constant.Companion.ACCESS_FINE_LOCATION
 import com.greg.uberclone.utils.Constant.Companion.DEFAULT_ZOOM
 import com.greg.uberclone.utils.Constant.Companion.INFO_CONNECTED
+import com.greg.uberclone.utils.UserUtils
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionDeniedResponse
@@ -50,6 +51,7 @@ import com.karumi.dexter.listener.single.PermissionListener
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -99,6 +101,8 @@ class HomeFragment : Fragment() {
     private lateinit var estimateDistance: JSONObject
     private lateinit var distance: String
     private lateinit var destination: LatLng
+    //------------------- Decline request ----------------------------------------------------------
+    private var countDownEvent: Disposable? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -110,6 +114,7 @@ class HomeFragment : Fragment() {
         binding = FragmentHomeBinding.inflate(layoutInflater)
         //initializeChip(binding.root)
         getLocationRequest()
+        clickOnChipToDeclineRequest()
         return binding.root
     }
 
@@ -242,7 +247,9 @@ class HomeFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        EventBus.getDefault().register(this)
+        if (!EventBus.getDefault().isRegistered(this)) {
+            EventBus.getDefault().register(this)
+        }
     }
 
     override fun onDestroy() {
@@ -692,7 +699,7 @@ class HomeFragment : Fragment() {
     //----------------------------------------------------------------------------------------------
 
     private fun countdown(){
-        Observable.interval(100, TimeUnit.MILLISECONDS)
+        countDownEvent = Observable.interval(100, TimeUnit.MILLISECONDS)
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnNext { x ->
                     binding.circularProgressBar.progress += 1f
@@ -703,4 +710,40 @@ class HomeFragment : Fragment() {
                 }
                 .subscribe()
     }
+
+    /**-----------------------------------------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+     *----------------------- Decline request --------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Click on decline request ------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun clickOnChipToDeclineRequest(){
+        binding.chipDecline.setOnClickListener{
+            declineRequest()
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Decline request ---------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun declineRequest(){
+        if (driverReceivedRequestEvent != null){
+            if (countDownEvent != null){
+                countDownEvent!!.dispose()
+            }
+            binding.chipDecline.visibility = View.GONE
+            binding.acceptCv.visibility = View.GONE
+            map.clear()
+            binding.circularProgressBar.progress = 0f
+            UserUtils.sendDeclineRequest(binding.rootLayout, requireActivity(), driverReceivedRequestEvent!!.key)
+            driverReceivedRequestEvent = null
+        }
+    }
+
+
 }

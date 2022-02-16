@@ -10,6 +10,9 @@ class Constant {
         const val DEFAULT_ZOOM = 17.0f
         const val ACCESS_FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION
         const val INFO_CONNECTED = ".info/connected"
+        const val REQUEST_DRIVER_DECLINE = "Decline"
+        const val REQUEST_DRIVER_BODY_MSG = "This message represent for decline action from Driver"
+        const val DRIVER_KEY = "DriverKey"
         //-------------------------------- Camera & gallery ----------------------------------------
         const val ACCESS_CAMERA = Manifest.permission.CAMERA
         const val READ_STORAGE = Manifest.permission.READ_EXTERNAL_STORAGE
