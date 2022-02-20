@@ -3,6 +3,7 @@ package com.greg.uberclone.ui.home
 import android.Manifest
 import android.animation.ValueAnimator
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.content.res.Resources
 import android.graphics.Color
 import android.location.Address
@@ -10,6 +11,7 @@ import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
 import android.os.Looper
+import android.text.TextUtils
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -17,6 +19,8 @@ import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.droidman.ktoasty.KToasty
@@ -34,6 +38,8 @@ import com.google.firebase.database.*
 import com.greg.uberclone.R
 import com.greg.uberclone.databinding.FragmentHomeBinding
 import com.greg.uberclone.event.DriverReceivedRequestEvent
+import com.greg.uberclone.model.Rider
+import com.greg.uberclone.model.TripPlan
 import com.greg.uberclone.remote.RetrofitService
 import com.greg.uberclone.ui.activity.DriverHomeActivity
 import com.greg.uberclone.utils.Common
@@ -41,6 +47,8 @@ import com.greg.uberclone.utils.Constant
 import com.greg.uberclone.utils.Constant.Companion.ACCESS_FINE_LOCATION
 import com.greg.uberclone.utils.Constant.Companion.DEFAULT_ZOOM
 import com.greg.uberclone.utils.Constant.Companion.INFO_CONNECTED
+import com.greg.uberclone.utils.Constant.Companion.RIDER_INFORMATION
+import com.greg.uberclone.utils.Constant.Companion.TRIP
 import com.greg.uberclone.utils.UserUtils
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
@@ -103,6 +111,15 @@ class HomeFragment : Fragment() {
     private lateinit var destination: LatLng
     //------------------- Decline request ----------------------------------------------------------
     private var countDownEvent: Disposable? = null
+    //------------------- Accept request -----------------------------------------------------------
+    private var isTripStarted = false
+    private var onlineSystemAlreadyRegistered = false
+    private var rider: Rider? = null
+    private var timeOffset: Long? = null
+    private lateinit var tripLocation: Location
+    private lateinit var tripPlan: TripPlan
+    private var tripNumberId: String? = ""
+    private var updateData: MutableMap<String, Any> = HashMap()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -258,6 +275,8 @@ class HomeFragment : Fragment() {
         removeOnlineListener()
 
         compositeDisposable.clear()
+        onlineSystemAlreadyRegistered = false
+
         if(EventBus.getDefault().hasSubscriberForEvent(DriverHomeActivity::class.java)){
             EventBus.getDefault().removeStickyEvent(DriverHomeActivity::class.java)
         }
@@ -386,7 +405,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun registerOnlineSystem() {
-        onlineDatabaseReference.addValueEventListener(onlineValueEventListener)
+        if (!onlineSystemAlreadyRegistered) {
+            onlineDatabaseReference.addValueEventListener(onlineValueEventListener)
+            onlineSystemAlreadyRegistered = true
+        }
     }
 
     //----------------------------------------------------------------------------------------------
@@ -431,24 +453,32 @@ class HomeFragment : Fragment() {
         initializeGeoCoder()
         lat = latitude
         lng = longitude
-        try {
-            val addressList = geoCoder.getFromLocation(latitude, longitude, 1)
-            Log.d("AddressList", addressList.toString())
-            if (addressList != null && addressList.size > 0){
-                val address = (addressList as MutableList<Address>)[0]
+        if (!isTripStarted) {
+            try {
+                val addressList = geoCoder.getFromLocation(latitude, longitude, 1)
+                Log.d("AddressList", addressList.toString())
+                if (addressList != null && addressList.size > 0){
+                    val address = (addressList as MutableList<Address>)[0]
 
-                if (address.adminArea == null){
-                    cityName = address.locality
-                    saveCityNameInRealTimeDatabase()
+                    if (address.adminArea == null){
+                        cityName = address.locality
+                        saveCityNameInRealTimeDatabase()
+                    }
+                    if (address.locality == null){
+                        cityName = address.adminArea
+                        saveCityNameInRealTimeDatabase()
+                    }
                 }
-                if (address.locality == null){
-                    cityName = address.adminArea
-                    saveCityNameInRealTimeDatabase()
-                }
+
+            } catch (e: IOException) {
+                Log.e(Constant.GEO_CODER_TAG, "Unable to connect to GeoCoder", e)
             }
-
-        } catch (e: IOException) {
-            Log.e(Constant.GEO_CODER_TAG, "Unable to connect to GeoCoder", e)
+        }
+        else {
+            if(!TextUtils.isEmpty(tripNumberId)){
+                //-------------------------------- Update location ---------------------------------
+                updateLocation()
+            }
         }
         return cityName
     }
@@ -606,8 +636,8 @@ class HomeFragment : Fragment() {
 
         val origin = LatLng(riderSendingRequestLocation.latitude, riderSendingRequestLocation.longitude)
         destination = LatLng(
-                driverReceivedRequestEvent!!.pickupLocation.split(",")[0].toDouble(),
-                driverReceivedRequestEvent!!.pickupLocation.split(",")[1].toDouble()
+                driverReceivedRequestEvent!!.pickupLocation!!.split(",")[0].toDouble(),
+                driverReceivedRequestEvent!!.pickupLocation!!.split(",")[1].toDouble()
         )
 
         latLngBound = LatLngBounds.Builder().include(origin)
@@ -706,7 +736,7 @@ class HomeFragment : Fragment() {
                 }
                 .takeUntil { aLong -> aLong == "100".toLong() } // 10 seconds
                 .doOnComplete {
-                    KToasty.success(requireContext(), "Fake accept action", Toast.LENGTH_LONG).show()
+                    createTripPlan()
                 }
                 .subscribe()
     }
@@ -740,10 +770,194 @@ class HomeFragment : Fragment() {
             binding.acceptCv.visibility = View.GONE
             map.clear()
             binding.circularProgressBar.progress = 0f
-            UserUtils.sendDeclineRequest(binding.rootLayout, requireActivity(), driverReceivedRequestEvent!!.key)
+            UserUtils.sendDeclineRequest(binding.rootLayout, requireActivity(), driverReceivedRequestEvent!!.key!!)
             driverReceivedRequestEvent = null
         }
     }
 
+    /**-----------------------------------------------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+     *----------------------- Accept request ---------------------------------------------------------------------------------------------------------------
+     *------------------------------------------------------------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Accept request ----------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun createTripPlan() {
+        setLayoutProcess(true)
+        //-------------------------------- Synchronize Firebase time with device -------------------
+        synchronizeFirebaseTimeWithDevice(driverReceivedRequestEvent, duration, distance)
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Set process layout ------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun setLayoutProcess(process: Boolean) {
+        var color = -1
+        if (process){
+            color = ContextCompat.getColor(requireContext(), R.color.dark_gray_color)
+            binding.circularProgressBar.indeterminateMode = true
+            binding.ratingTv.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, R.drawable.ic_baseline_star_dark_gray_24, 0)
+        }
+        else{
+            color = ContextCompat.getColor(requireContext(), R.color.star_color)
+            binding.circularProgressBar.indeterminateMode = false
+            binding.circularProgressBar.progress = 0f
+            binding.ratingTv.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, R.drawable.ic_baseline_star_24, 0)
+        }
+        binding.estimateTimeTv.setTextColor(color)
+        binding.estimateDistanceTv.setTextColor(color)
+        binding.ratingTv.setTextColor(color)
+        ImageViewCompat.setImageTintList(binding.startUberAccountCircle, ColorStateList.valueOf(color))
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Synchronize Firebase time with device -----------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun synchronizeFirebaseTimeWithDevice(driverReceivedRequestEvent: DriverReceivedRequestEvent?, duration: String, distance: String){
+        FirebaseDatabase.getInstance().getReference(".info/serverTimeOffset")
+            .addListenerForSingleValueEvent(object: ValueEventListener{
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    timeOffset = snapshot.getValue(Long::class.java)
+
+                    //-------------------------------- Load rider information ----------------------
+                    FirebaseDatabase.getInstance().getReference(RIDER_INFORMATION)
+                        .child(driverReceivedRequestEvent!!.key!!)
+                        .addListenerForSingleValueEvent(object: ValueEventListener{
+                            override fun onDataChange(snapshot: DataSnapshot) {
+                                if (snapshot.exists()){
+                                    rider = snapshot.getValue(Rider::class.java)
+                                    getRiderLocation()
+                                }
+                                else{
+                                    Snackbar.make(mapFragment.requireView(), requireContext().getString(R.string.rider_not_found) + " " +
+                                            driverReceivedRequestEvent.key, Snackbar.LENGTH_LONG).show()
+                                }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                Snackbar.make(mapFragment.requireView(), error.message, Snackbar.LENGTH_LONG).show()
+                            }
+                        })
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Snackbar.make(mapFragment.requireView(), error.message, Snackbar.LENGTH_LONG).show()
+                }
+            })
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Get rider location ------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun getRiderLocation(){
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Snackbar.make(mapFragment.requireView(), requireContext().getString(R.string.permission_required), Snackbar.LENGTH_LONG).show()
+            return
+        }
+        fusedLocationProviderClient.lastLocation
+            .addOnFailureListener { e ->
+                Snackbar.make(mapFragment.requireView(), e.message!!, Snackbar.LENGTH_LONG).show()
+            }
+            .addOnSuccessListener { location ->
+                tripLocation = location
+                //-------------------------------- Create trip plan --------------------------------
+                tripInformation()
+            }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Trip information --------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun tripInformation() {
+        tripPlan = TripPlan()
+        tripPlan.riderKey = driverReceivedRequestEvent!!.key
+        tripPlan.driverId = FirebaseAuth.getInstance().currentUser!!.uid
+        tripPlan.rider = rider
+        tripPlan.driver = Common.currentDriver
+        tripPlan.origin = driverReceivedRequestEvent!!.pickupLocation
+        tripPlan.originString = driverReceivedRequestEvent!!.pickupLocationString
+        tripPlan.destination = driverReceivedRequestEvent!!.destinationLocation
+        tripPlan.destinationString = driverReceivedRequestEvent!!.destinationLocationString
+        tripPlan.distancePickup = distance
+        tripPlan.durationPickup = duration
+        tripPlan.currentLat = tripLocation.latitude
+        tripPlan.currentLng = tripLocation.longitude
+
+        tripNumberId = Common.createUniqueTripNumberId(timeOffset)
+        saveTrip()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Save trip ---------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun saveTrip() {
+        FirebaseDatabase.getInstance().getReference(TRIP)
+                .child(tripNumberId!!)
+                .setValue(tripPlan)
+                .addOnSuccessListener {
+                    binding.startUberRiderNameTv.text = rider!!.firstName
+                    binding.startUberEstimateDistanceTv.text = distance
+                    binding.startUberEstimateTimeTv.text = duration
+
+                    setOfflineModeForDriver(driverReceivedRequestEvent, duration, distance)
+                }
+                .addOnFailureListener { e ->
+                    Snackbar.make(mapFragment.requireView(), e.message!!, Snackbar.LENGTH_LONG).show()
+                }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Set offline mode for driver ---------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun setOfflineModeForDriver(driverReceivedRequestEvent: DriverReceivedRequestEvent?, duration: String, distance: String) {
+        //-------------------------------- Go to offline -------------------------------------------
+        if (currentDriverReference != null) {
+            currentDriverReference!!.removeValue()
+            setLayoutProcess(false)
+            binding.acceptCv.visibility = View.GONE
+            binding.startUberCv.visibility = View.VISIBLE
+
+            isTripStarted = true
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Update location ---------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun updateLocation(){
+        updateData["currentLat"] = lat
+        updateData["currentLng"] = lng
+        updateTripLocation()
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Update location ---------------------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    private fun updateTripLocation() {
+        FirebaseDatabase.getInstance().getReference(TRIP)
+                .child(tripNumberId!!)
+                .updateChildren(updateData)
+                .addOnSuccessListener {  }
+                .addOnFailureListener { e ->
+                    Snackbar.make(mapFragment.requireView(), e.message!!, Snackbar.LENGTH_LONG).show()
+                }
+    }
 }

@@ -14,11 +14,17 @@ import com.google.android.gms.maps.model.LatLng
 import com.greg.uberclone.R
 import com.greg.uberclone.model.Driver
 import com.greg.uberclone.utils.Constant.Companion.NOTIFICATION_CHANNEL_ID
+import java.util.*
+import kotlin.collections.ArrayList
 
 object Common {
 
     var currentDriver: Driver? = null
-    
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Build welcome message ---------------------------------------
+    //----------------------------------------------------------------------------------------------
+
     fun buildWelcomeMessage(): String {
         return StringBuilder("Welcome")
                 .append(" ")
@@ -27,6 +33,10 @@ object Common {
                 .append(currentDriver!!.lastName!!.trim())
                 .toString()
     }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Show notification -------------------------------------------
+    //----------------------------------------------------------------------------------------------
 
     fun showNotification(context: Context, id: Int, title: String?, body: String?, intent: Intent?) {
         var pendingIntent: PendingIntent? = null
@@ -117,5 +127,20 @@ object Common {
             poly.add(p)
         }
         return poly
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //-------------------------------- Create unique trip number id --------------------------------
+    //----------------------------------------------------------------------------------------------
+
+    fun createUniqueTripNumberId(timeOffset: Long?): String? {
+        val random = Random()
+        val currentTime = System.currentTimeMillis() + timeOffset!!
+        var uniqueId = currentTime + random.nextLong()
+        if (uniqueId < 0) {
+            uniqueId *= -1
+        }
+
+        return uniqueId.toString()
     }
 }

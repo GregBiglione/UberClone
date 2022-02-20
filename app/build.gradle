@@ -121,6 +121,9 @@ dependencies {
     //----------------------- Circular progress bar ------------------------------------------------
     implementation 'com.mikhaellopez:circularprogressbar:3.1.0'
 
+    //----------------------- Loading button -------------------------------------------------------
+    implementation 'com.github.koushikcse:LoadingButton:1.7'
+
     //----------------------- Useful for chip ------------------------------------------------------
     //implementation 'com.google.android.material:material:1.0.0-beta01'
 

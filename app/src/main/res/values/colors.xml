@@ -14,4 +14,7 @@
     <color name="phone_color">#3BB927</color>
     <color name="google_text_color">#7F7F7F</color>
     <color name="progress_bar_color">#151828</color>
+    <color name="dark_gray_color">#656565</color>
+    <color name="star_color">#F9E911</color>
+    <color name="star_uber_btn_color">#227159</color>
 </resources>

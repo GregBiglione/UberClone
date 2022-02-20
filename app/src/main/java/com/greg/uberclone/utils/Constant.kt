@@ -5,6 +5,7 @@ import com.greg.uberclone.R
 
 class Constant {
     companion object{
+        //-------------------------------- Driver --------------------------------------------------
         const val DRIVER_INFORMATION = "DriverInformation"
         const val DRIVER_LOCATION = "DriverLocation"
         const val DEFAULT_ZOOM = 17.0f
@@ -13,6 +14,10 @@ class Constant {
         const val REQUEST_DRIVER_DECLINE = "Decline"
         const val REQUEST_DRIVER_BODY_MSG = "This message represent for decline action from Driver"
         const val DRIVER_KEY = "DriverKey"
+        //-------------------------------- Rider ---------------------------------------------------
+        const val RIDER_INFORMATION = "RiderInformation"
+        //-------------------------------- Trip ----------------------------------------------------
+        const val TRIP = "Trip"
         //-------------------------------- Camera & gallery ----------------------------------------
         const val ACCESS_CAMERA = Manifest.permission.CAMERA
         const val READ_STORAGE = Manifest.permission.READ_EXTERNAL_STORAGE
@@ -26,6 +31,9 @@ class Constant {
         //-------------------------------- Driver request ------------------------------------------
         const val REQUEST_DRIVER_TITLE = "RequestDriver"
         const val PICKUP_LOCATION = "PickupLocation"
+        const val PICKUP_LOCATION_STRING = "PickupLocationString"
+        const val DESTINATION_LOCATION = "DestinationLocation"
+        const val DESTINATION_LOCATION_STRING = "DestinationLocationString"
         const val RIDER_KEY = "RiderKey"
         //-------------------------------- Url -----------------------------------------------------
         const val BASE_URL = "https://maps.googleapis.com/"

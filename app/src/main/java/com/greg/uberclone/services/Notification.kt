@@ -8,9 +8,12 @@ import com.google.firebase.messaging.RemoteMessage
 import com.greg.uberclone.event.DriverReceivedRequestEvent
 import com.greg.uberclone.ui.activity.DriverHomeActivity
 import com.greg.uberclone.utils.Common
+import com.greg.uberclone.utils.Constant.Companion.DESTINATION_LOCATION
+import com.greg.uberclone.utils.Constant.Companion.DESTINATION_LOCATION_STRING
 import com.greg.uberclone.utils.Constant.Companion.NOTIFICATION_BODY
 import com.greg.uberclone.utils.Constant.Companion.NOTIFICATION_TITLE
 import com.greg.uberclone.utils.Constant.Companion.PICKUP_LOCATION
+import com.greg.uberclone.utils.Constant.Companion.PICKUP_LOCATION_STRING
 import com.greg.uberclone.utils.Constant.Companion.REQUEST_DRIVER_TITLE
 import com.greg.uberclone.utils.Constant.Companion.RIDER_KEY
 import com.greg.uberclone.utils.UserUtils
@@ -34,7 +37,15 @@ class Notification: FirebaseMessagingService() {
         val data = remoteMessage.data
         if (data != null){
             if (data[NOTIFICATION_TITLE]!! == REQUEST_DRIVER_TITLE){
-                EventBus.getDefault().postSticky(DriverReceivedRequestEvent(data[RIDER_KEY]!!,data[PICKUP_LOCATION]!!))
+
+                val driverReceivedRequestEvent = DriverReceivedRequestEvent()
+                driverReceivedRequestEvent.key = data[RIDER_KEY]
+                driverReceivedRequestEvent.pickupLocation = data[PICKUP_LOCATION]
+                driverReceivedRequestEvent.pickupLocationString = data[PICKUP_LOCATION_STRING]
+                driverReceivedRequestEvent.destinationLocation = data[DESTINATION_LOCATION]
+                driverReceivedRequestEvent.destinationLocationString = data[DESTINATION_LOCATION_STRING]
+
+                EventBus.getDefault().postSticky(driverReceivedRequestEvent)
             }
             else{
                 val intent = Intent(this, DriverHomeActivity::class.java)
