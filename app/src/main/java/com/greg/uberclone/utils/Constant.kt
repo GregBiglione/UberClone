@@ -12,8 +12,11 @@ class Constant {
         const val ACCESS_FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION
         const val INFO_CONNECTED = ".info/connected"
         const val REQUEST_DRIVER_DECLINE = "Decline"
-        const val REQUEST_DRIVER_BODY_MSG = "This message represent for decline action from Driver"
+        const val DECLINED_REQUEST_DRIVER_BODY_MSG = "This message represent for decline action from Driver"
+        const val REQUEST_DRIVER_ACCEPT = "Accept"
+        const val ACCEPTED_REQUEST_DRIVER_BODY_MSG = "This message represent for accept action from Driver"
         const val DRIVER_KEY = "DriverKey"
+        const val TRIP_KEY = "TripKey"
         //-------------------------------- Rider ---------------------------------------------------
         const val RIDER_INFORMATION = "RiderInformation"
         //-------------------------------- Trip ----------------------------------------------------
